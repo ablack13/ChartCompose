@@ -1,4 +1,4 @@
-package b13.compose.chart.composable
+package de.phase6.ui
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -20,40 +20,39 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.min
 
-data class ChartData(val series: List<Bar>) {
-    val allItemsCount: Long = series.sumOf { it.value }
-}
-
 data class Bar(val value: Long, val label: String)
 
-data class ChartColors(
+data class BarChartColors(
     val primary: Color,
     val accent: Color,
-    val secondary: Color
+    val secondary: Color,
 )
 
 data class BarColor(
     val primary: Color,
-    val background: Color
+    val background: Color,
 )
 
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
-fun Chart(
+fun BarChart(
     modifier: Modifier = Modifier,
-    data: ChartData,
+    series: List<Bar>,
     selectedBar: Int,
-    colors: ChartColors = ChartColorDefault,
+    colors: BarChartColors = BarChartColorDefault,
     onBarSelectChanged: (index: Int) -> Unit,
     maxVisibleColumnCount: Int = 8,
-    barBuilder: @Composable (bar: Bar, colors: BarColor) -> Unit
+    fillMaxWidth: Boolean = true,
+    barBuilder: @Composable (index: Int, bar: Bar, colors: BarColor) -> Unit,
 ) {
-    val chartWidth = remember(data) { mutableStateOf(-1) }
-    val selectedColors = remember(colors) { mutableStateOf(BarColor(primary = colors.accent, background = colors.secondary)) }
-    val unselectedColors = remember(colors) { mutableStateOf(BarColor(primary = colors.primary, background = colors.secondary)) }
+    val chartWidth = remember(series) { mutableStateOf(-1) }
+    val selectedColors =
+        remember(colors) { mutableStateOf(BarColor(primary = colors.accent, background = colors.secondary)) }
+    val unselectedColors =
+        remember(colors) { mutableStateOf(BarColor(primary = colors.primary, background = colors.secondary)) }
 
-    LaunchedEffect(data.series) {
-        if (selectedBar > data.series.size)
+    LaunchedEffect(series) {
+        if (selectedBar > series.size)
             onBarSelectChanged(0)
     }
 
@@ -62,17 +61,23 @@ fun Chart(
             chartWidth.value = coordinates.size.width
     }) {
         if (chartWidth.value != -1) {
-            val seriesSize = data.series.size
+            val seriesSize = series.size
             val columnCount = if (seriesSize >= maxVisibleColumnCount) maxVisibleColumnCount else seriesSize
-            val columnWidth = LocalDensity.current.run { min(columnMaxWidth, (chartWidth.value / columnCount).toDp()) }
+            val columnWidth = LocalDensity.current.run {
+                if (fillMaxWidth && seriesSize >= maxVisibleColumnCount)
+                    (chartWidth.value / columnCount).toDp()
+                else
+                    min(columnMaxWidth, (chartWidth.value / columnCount).toDp())
+            }
 
             LazyRow(
                 horizontalArrangement = Arrangement.Center,
                 modifier = Modifier.fillMaxSize()
             ) {
-                items(data.series.count()) { index ->
+                items(series.size) { index ->
                     Box(
-                        modifier = Modifier.width(columnWidth)
+                        modifier = Modifier
+                            .width(columnWidth)
                             .clickable(
                                 interactionSource = remember { MutableInteractionSource() },
                                 indication = null
@@ -80,8 +85,10 @@ fun Chart(
                                 onBarSelectChanged(index)
                             }
                     ) {
+
                         barBuilder(
-                            data.series[index],
+                            index,
+                            series[index],
                             if (index == selectedBar) selectedColors.value else unselectedColors.value
                         )
                     }
@@ -91,7 +98,7 @@ fun Chart(
     }
 }
 
-val ChartColorDefault = ChartColors(
+val BarChartColorDefault = BarChartColors(
     primary = Color.Gray,
     accent = Color.Magenta,
     secondary = Color.LightGray

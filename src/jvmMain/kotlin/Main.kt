@@ -20,6 +20,10 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 import b13.compose.chart.composable.*
+import de.phase6.ui.Bar
+import de.phase6.ui.BarChart
+import de.phase6.ui.BarChartColorDefault
+import de.phase6.ui.BarChartColors
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.delay
@@ -44,23 +48,25 @@ fun App() {
     }
 }
 
-private fun fillChartData(count: Int): ChartData {
-    val series: List<Bar> =
-        mutableListOf<Bar>().apply {
+private fun fillChartData(count: Int): List<Bar> =
+    mutableListOf<Bar>()
+        .apply {
             add(Bar(235, "Start"))
-            repeat(count - 2) {
-                add(Bar(Random.nextLong(0, 100), "Col ${it + 1}"))
+            if (count > 1) {
+                repeat(count - 2) {
+                    add(Bar(Random.nextLong(0, 100), "Col ${it + 1}"))
+                }
+                add(Bar(35, "End"))
             }
-            add(Bar(35, "End"))
         }
-    return ChartData(series = series)
-}
 
 @Composable
 private fun ChartComposeView() {
     val sliderState = remember { mutableStateOf(8f) }
+    val sliderProgressState = remember { mutableStateOf(0f) }
     val data = remember(sliderState.value.toInt()) { mutableStateOf(fillChartData(sliderState.value.toInt())) }
     val selectedBar = remember { mutableStateOf(0) }
+    val allItemsCount = remember(data.value) { mutableStateOf(data.value.sumOf { it.value }) }
 
     Column(
         modifier = Modifier.padding(
@@ -79,7 +85,7 @@ private fun ChartComposeView() {
                 onValueChange = {
                     sliderState.value = it
                 },
-                valueRange = 3.0f..20.0f,
+                valueRange = 1.0f..20.0f,
                 steps = 20,
                 modifier = Modifier.weight(1f),
             )
@@ -90,31 +96,57 @@ private fun ChartComposeView() {
                 fontSize = 14.sp
             )
         }
-        Chart(
-            data = data.value,
-            selectedBar = selectedBar.value,
-            onBarSelectChanged = {
-                selectedBar.value = it
-                println("selectedBar -> ${selectedBar.value}")
-            },
-            modifier = Modifier
-                .height(320.dp)
-                .fillMaxWidth()
-        ) { bar, colors ->
-            BarItem(
-                value = bar.value,
-                label = bar.label,
-                maxValue = data.value.allItemsCount,
-                primaryColor = colors.primary,
-                backgroundColor = colors.background
-            )
+        if (data.value.size == 1) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Slider(
+                    value = sliderProgressState.value,
+                    onValueChange = {
+                        sliderProgressState.value = it
+                    },
+                    valueRange = 0.0f..100.0f,
+                    steps = 100,
+                    modifier = Modifier.fillMaxWidth()
+                        .padding(bottom = Dimen.padding4),
+                )
+                BarItem(
+                    modifier = Modifier.width(40.dp)
+                        .height(240.dp),
+                    value = sliderProgressState.value.toLong(),
+                    label = "Col 1",
+                    maxValue = 100,
+                    primaryColor = BarChartColorDefault.primary,
+                    backgroundColor = BarChartColorDefault.secondary
+                )
+            }
+        } else {
+            BarChart(
+                series = data.value,
+                selectedBar = selectedBar.value,
+                onBarSelectChanged = {
+                    selectedBar.value = it
+                    println("selectedBar -> ${selectedBar.value}")
+                },
+                modifier = Modifier
+                    .height(320.dp)
+                    .fillMaxWidth()
+            ) { _, bar, colors ->
+                BarItem(
+                    value = bar.value,
+                    label = bar.label,
+                    maxValue = allItemsCount.value,
+                    primaryColor = colors.primary,
+                    backgroundColor = colors.background
+                )
+            }
         }
-
         Text(
             modifier = Modifier.padding(top = Dimen.padding4).fillMaxWidth(),
             text = "Selected column index: ${selectedBar.value}\n" +
-                    "Current column value: ${data.value.series.getOrNull(selectedBar.value)?.value}\n" +
-                    "All columns value sum: ${data.value.allItemsCount}",
+                    "Current column value: ${data.value.getOrNull(selectedBar.value)?.value}\n" +
+                    "All columns value sum: ${allItemsCount.value}",
             textAlign = TextAlign.Center
         )
     }
@@ -155,20 +187,31 @@ private fun BarItem(
                 verticalArrangement = Arrangement.Bottom,
                 modifier = Modifier.fillMaxSize()
             ) {
-                Text(
-                    textAlign = TextAlign.Center,
-                    text = value.toString(),
-                    color = primaryColor,
-                    fontSize = 10.sp,
-                    modifier = Modifier.padding(bottom = Dimen.padding1)
-                        .fillMaxWidth()
-                )
+                if (progress < 0.95)
+                    Text(
+                        textAlign = TextAlign.Center,
+                        text = value.toString(),
+                        color = primaryColor,
+                        fontSize = 10.sp,
+                        modifier = Modifier.padding(bottom = Dimen.padding1)
+                            .fillMaxWidth()
+                    )
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .fillMaxHeight(fraction = progress)
                         .background(color = primaryColor)
-                )
+                ) {
+                    if (progress >= 0.95)
+                        Text(
+                            textAlign = TextAlign.Center,
+                            text = value.toString(),
+                            color = backgroundColor,
+                            fontSize = 10.sp,
+                            modifier = Modifier.padding(top = Dimen.padding1)
+                                .fillMaxWidth()
+                        )
+                }
             }
         }
         Text(
