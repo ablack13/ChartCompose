@@ -24,12 +24,14 @@ data class Bar(val value: Long, val label: String)
 
 data class BarChartColors(
     val primary: Color,
-    val accent: Color,
     val secondary: Color,
+    val accent: Color,
+    val background: Color,
 )
 
 data class BarColor(
     val primary: Color,
+    val secondary: Color,
     val background: Color,
 )
 
@@ -47,9 +49,21 @@ fun BarChart(
 ) {
     val chartWidth = remember(series) { mutableStateOf(-1) }
     val selectedColors =
-        remember(colors) { mutableStateOf(BarColor(primary = colors.accent, background = colors.secondary)) }
+        remember(colors) {
+            mutableStateOf(BarColor(
+                primary = colors.accent,
+                secondary = colors.accent,
+                background = colors.background)
+            )
+        }
     val unselectedColors =
-        remember(colors) { mutableStateOf(BarColor(primary = colors.primary, background = colors.secondary)) }
+        remember(colors) {
+            mutableStateOf(BarColor(
+                primary = colors.primary,
+                secondary = colors.secondary,
+                background = colors.background)
+            )
+        }
 
     LaunchedEffect(series) {
         if (selectedBar > series.size)
@@ -100,8 +114,9 @@ fun BarChart(
 
 val BarChartColorDefault = BarChartColors(
     primary = Color.Gray,
+    secondary = Color.Gray.copy(alpha = 0.7f),
     accent = Color.Magenta,
-    secondary = Color.LightGray
+    background = Color.LightGray
 )
 
 private val columnMaxWidth: Dp = 40.dp

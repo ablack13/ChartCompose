@@ -118,6 +118,7 @@ private fun ChartComposeView() {
                     label = "Col 1",
                     maxValue = 100,
                     primaryColor = BarChartColorDefault.primary,
+                    secondaryColor = BarChartColorDefault.secondary,
                     backgroundColor = BarChartColorDefault.secondary
                 )
             }
@@ -138,6 +139,7 @@ private fun ChartComposeView() {
                     label = bar.label,
                     maxValue = allItemsCount.value,
                     primaryColor = colors.primary,
+                    secondaryColor = colors.secondary,
                     backgroundColor = colors.background
                 )
             }
@@ -159,6 +161,7 @@ private fun BarItem(
     label: String,
     maxValue: Long,
     primaryColor: Color,
+    secondaryColor:Color,
     backgroundColor: Color
 ) {
     val progressAnimation = remember(value) { Animatable(initialValue = 0f) }
@@ -200,7 +203,7 @@ private fun BarItem(
                     modifier = Modifier
                         .fillMaxWidth()
                         .fillMaxHeight(fraction = progress)
-                        .background(color = primaryColor)
+                        .background(color = secondaryColor)
                 ) {
                     if (progress >= 0.95)
                         Text(
